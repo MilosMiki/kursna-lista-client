@@ -1,0 +1,110 @@
+/* General Styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.App {
+  padding: 0; /* Remove padding around the entire app */
+}
+
+/* Header Styles */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: black; /* Header background color */
+  padding: 20px; /* Padding inside the header */
+  color: white; /* Header text color */
+}
+
+.header-left h1 {
+  font-size: 32px; /* Larger font size for "Menjačnica Sedmica MMS" */
+  margin: 0;
+}
+
+.header-left p {
+  font-size: 16px; /* Larger font size for "Bulevar Oslobođenja 109 Novi Sad" */
+  margin: 0;
+}
+
+.header-right p {
+  font-size: 32px; /* Larger font size for "Tel: 021/521-421" */
+  margin: 0;
+}
+
+/* Box Container Styles */
+.box-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px; /* Reduced gap between boxes */
+  justify-content: center;
+  padding: 10px; /* Reduced padding around the box container */
+}
+
+/* Box Styles */
+.box {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 0px;
+  text-align: center;
+  flex: 1 1 calc(25% - 20px); /* 4 boxes per row on desktop - default value */
+  max-width: calc(25% - 20px);
+  box-sizing: border-box;
+  background-color: white; /* Box background color */
+}
+
+.box h2 {
+  font-size: 38px; /* font size for "Naziv" */
+  margin: 0 0 15px 0; /* I control the padding between header and body of boxes here */
+  background-color: lightgray; /* Light gray background for box headers */
+  padding: 10px; /* Padding inside the box header */
+  border-radius: 4px;
+}
+
+.box .label {
+  font-size: 16px; /* font size for labels */
+  margin: 0px 0;
+  color: #333; /* Label text color */
+}
+
+.box .value {
+  font-size: 60px; /* Much larger font size for Otkup and Prodaja values */
+  font-weight: bold;
+  margin: 3px 0 6px 0; /* I control the margin between label and fields here */
+  color: #00846d; /* Green color for Otkup and Prodaja values */
+}
+
+/* Responsive Styles */
+@media (max-width: 1060px) {
+  .box {
+    flex: 1 1 calc(33% - 20px); /* 3 boxes per row */
+    max-width: calc(33% - 20px);
+  }
+}
+
+@media (max-width: 830px) {
+  .box {
+    flex: 1 1 calc(50% - 20px); /* 2 boxes per row */
+    max-width: calc(50% - 20px);
+  }
+}
+
+@media(max-width:700px){
+  /* Stack header content on mobile */
+  .header {
+    flex-direction: column; /* Stack header content vertically */
+    align-items: flex-start; /* Align content to the left */
+    padding: 15px; /* Adjust padding for mobile */
+  }
+}
+
+@media (max-width: 550px) {
+  .box {
+    flex: 1 1 100%; /* 1 box per row */
+    max-width: 100%;
+  }
+}
