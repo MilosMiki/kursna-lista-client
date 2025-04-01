@@ -44,9 +44,12 @@ function App() {
     <div className="App">
       {/* Header */}
       <header className="header">
-        <div className="header-left">
-          <h1>Menjačnica Sedmica MMS</h1>
-          <p>Bulevar Oslobođenja 109, Novi Sad</p>
+        <div className="logo-title">
+          <img src="/logo.jpeg" alt="Menjačnica Sedmica MMS Logo" className="logo" />
+          <div className="header-left">
+            <h1>Menjačnica Sedmica MMS</h1>
+            <p>Bulevar Oslobođenja 109, Novi Sad</p>
+          </div>
         </div>
         <div className="header-right">
           <p>Tel: 021/521-421</p>

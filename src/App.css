@@ -1,4 +1,21 @@
 /* General Styles */
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url('../public/logo.jpeg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 50%;
+  opacity: 0.05; /* Adjust transparency */
+  z-index: -1;
+}
+
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -8,6 +25,11 @@ body {
 
 .App {
   padding: 0; /* Remove padding around the entire app */
+}
+
+.logo {
+  height: 70px; /* Adjust the size as needed */
+  margin-right: 5px;
 }
 
 /* Header Styles */
@@ -20,6 +42,13 @@ body {
   padding: 20px; /* Padding inside the header */
   color: white; /* Header text color */
 }
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Align left */
+}
+
 
 .header-left h1 {
   font-size: 32px; /* Larger font size for "Menjačnica Sedmica MMS" */
@@ -34,6 +63,12 @@ body {
 .header-right p {
   font-size: 32px; /* Larger font size for "Tel: 021/521-421" */
   margin: 0;
+}
+
+.logo-title {
+  display: flex;
+  align-items: center; /* Keep logo and title together */
+  gap: 10px; /* Add space between logo and text */
 }
 
 /* Box Container Styles */
