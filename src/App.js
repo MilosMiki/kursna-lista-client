@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
-import currencyToCountryCode from "./currencyFlags";
-import Flag from './Flag';
+// import currencyToCountryCode from "./currencyFlags";
+// import Flag from './Flag';
 import "./App.css";
 
 // Firebase configuration
@@ -61,8 +61,8 @@ function App() {
           item.Otkup === "" || item.Prodaja === "" ? null : (
             <div key={index} className="box">
               <h2>
-                <Flag countryCode={currencyToCountryCode[item.Naziv]} />
-                {item.Naziv}
+                {/* <Flag countryCode={currencyToCountryCode[item.Naziv]} /> */}
+                <div className="item-name">{item.Naziv}</div>
               </h2>
               <p className="label">Otkup:</p>
               <p className="value">{item.Otkup}</p>
