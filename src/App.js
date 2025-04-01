@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
+// import Flag from "react-world-flags";
+import SVGFlag from 'react-world-flags';
+import currencyToCountryCode from "./currencyFlags";
 import "./App.css";
 
 // Firebase configuration
@@ -42,9 +45,12 @@ function App() {
     <div className="App">
       {/* Header */}
       <header className="header">
-        <div className="header-left">
-          <h1>Menjačnica Sedmica MMS</h1>
-          <p>Bulevar Oslobođenja 109, Novi Sad</p>
+        <div className="logo-title">
+          <img src="/logo.jpeg" alt="Menjačnica Sedmica MMS Logo" className="logo" />
+          <div className="header-left">
+            <h1>Menjačnica Sedmica MMS</h1>
+            <p>Bulevar Oslobođenja 109, Novi Sad</p>
+          </div>
         </div>
         <div className="header-right">
           <p>Tel: 021/521-421</p>
@@ -55,7 +61,13 @@ function App() {
         {data.map((item, index) => (
           item.Otkup === "" || item.Prodaja === "" ? null : (
             <div key={index} className="box">
-              <h2>{item.Naziv}</h2>
+              <h2>
+                <SVGFlag 
+                  code={currencyToCountryCode[item.Naziv]} 
+                  className="flag"
+                />
+                {item.Naziv}
+              </h2>
               <p className="label">Otkup:</p>
               <p className="value">{item.Otkup}</p>
               <p className="label">Prodaja:</p>

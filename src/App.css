@@ -1,4 +1,20 @@
 /* General Styles */
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url('../public/logo.jpeg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 50%;
+  opacity: 0.05; /* Adjust transparency */
+  z-index: -1;
+}
+
 body {
   font-family: Arial, sans-serif;
   margin: 0;
@@ -8,6 +24,10 @@ body {
 
 .App {
   padding: 0; /* Remove padding around the entire app */
+}
+.logo {
+  height: 70px; /* Adjust the size as needed */
+  margin-right: 5px;
 }
 
 /* Header Styles */
@@ -19,6 +39,12 @@ body {
   background-color: black; /* Header background color */
   padding: 20px; /* Padding inside the header */
   color: white; /* Header text color */
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Align left */
 }
 
 .header-left h1 {
@@ -34,6 +60,12 @@ body {
 .header-right p {
   font-size: 32px; /* Larger font size for "Tel: 021/521-421" */
   margin: 0;
+}
+
+.logo-title {
+  display: flex;
+  align-items: center; /* Keep logo and title together */
+  gap: 10px; /* Add space between logo and text */
 }
 
 /* Box Container Styles */
@@ -63,6 +95,12 @@ body {
   background-color: lightgray; /* Light gray background for box headers */
   padding: 10px; /* Padding inside the box header */
   border-radius: 4px;
+  position: relative; /* Enable absolute positioning for child */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden; /* Ensure rounded corners apply */
 }
 
 .box .label {
@@ -76,6 +114,17 @@ body {
   font-weight: bold;
   margin: 3px 0 6px 0; /* I control the margin between label and fields here */
   color: #00846d; /* Green color for Otkup and Prodaja values */
+}
+
+.flag {
+  position: absolute;
+  left: 0;
+  top:0;
+  height: 100%; /* Force height */
+  width: 100px; /* Force width */
+  border-top-left-radius: 4px; /* Match h2's rounded corners */
+  border-bottom-left-radius: 4px;
+  object-fit:fill;
 }
 
 /* Responsive Styles */
