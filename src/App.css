@@ -124,7 +124,7 @@ body {
   width: 100px; /* Force width */
   border-top-left-radius: 4px; /* Match h2's rounded corners */
   border-bottom-left-radius: 4px;
-  object-fit:cover;
+  object-fit:fill;
 }
 
 /* Responsive Styles */
