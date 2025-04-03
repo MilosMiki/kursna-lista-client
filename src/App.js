@@ -4,6 +4,8 @@ import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 // import currencyToCountryCode from "./currencyFlags";
 // import Flag from './Flag';
+import { currencyToCountry } from './currencyToCountry';
+import ReactCountryFlag from 'react-country-flag';
 import "./App.css";
 
 // Firebase configuration
@@ -61,13 +63,24 @@ function App() {
           item.Otkup === "" || item.Prodaja === "" ? null : (
             <div key={index} className="box">
               <h2>
-                {/* <Flag countryCode={currencyToCountryCode[item.Naziv]} /> */}
+                <ReactCountryFlag
+                  countryCode={currencyToCountry[item.Naziv]}
+                  svg
+                  className="box-flag"
+                  style={{
+                    width: 'auto',
+                    height: '100%',
+                    position: 'absolute',
+                    left: 0,
+                    top: 0
+                  }}
+                />
                 <div className="item-name">{item.Naziv}</div>
               </h2>
-              <p className="label">Otkup:</p>
-              <p className="value">{item.Otkup}</p>
-              <p className="label">Prodaja:</p>
-              <p className="value">{item.Prodaja}</p>
+                    <p className="label">Otkup:</p>
+                    <p className="value">{item.Otkup}</p>
+                    <p className="label">Prodaja:</p>
+                    <p className="value">{item.Prodaja}</p>
             </div>
           )
         ))}

@@ -98,6 +98,20 @@ body {
   background-color: lightgray; /* Light gray background for box headers */
   padding: 10px; /* Padding inside the box header */
   border-radius: 4px;
+  position: relative; /* Needed for absolute positioning of flag */
+  padding-left: 50px; /* Make space for the flag */
+  overflow: hidden; /* Keep rounded corners */
+}
+/* Flag Styles */
+.box-flag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: auto; /* Maintain aspect ratio */
+  object-fit: cover;
+  border-top-left-radius: 4px; /* Match header rounding */
+  border-bottom-left-radius: 4px;
 }
 
 .box .label {
