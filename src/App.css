@@ -94,7 +94,7 @@ body {
 }
 
 .map-modal {
-  width: min(90vw, 900px);
+  width: min(90vw, 960px);
   background: white;
   border-radius: 12px;
   overflow: hidden;
@@ -105,14 +105,14 @@ body {
 
 .map-modal-header {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 1;
+  top: 12px;
+  left: 12px;
+  z-index: 1001;
 }
 
 .close-map-button {
   border: none;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 50%;
   width: 32px;
   height: 32px;
@@ -124,11 +124,51 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.map-iframe {
+.route-map-shell {
   width: 100%;
   min-height: 420px;
-  border: 0;
+  height: min(72vh, 560px);
+}
+
+.route-map {
+  width: 100%;
+  height: 100%;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #e9f2fb;
+  z-index: 0;
+}
+
+.leaflet-control-zoom {
+  margin-top: 48px !important;
+  margin-left: 12px !important;
+}
+
+.route-map-status {
+  padding: 10px 14px 14px;
+  color: #184a8c;
+  background: #f7fbff;
+  font-size: 14px;
+}
+
+.location-dot {
   display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
+}
+
+.user-location-dot {
+  background: #1b8cff;
+}
+
+.office-location-dot {
+  background: #ff7b00;
 }
 
 .update-panel {
@@ -143,7 +183,7 @@ body {
   border-radius: 999px;
   background: rgba(74, 144, 226, 0.05);
   color: #184a8c;
-  font-size: 18px;
+  font-size: clamp(16px, 1.2cqw, 18px);
   line-height: 1.3;
   font-weight: 600;
   overflow: hidden;
@@ -154,12 +194,12 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: clamp(20px, 1.8cqw, 24px);
+  height: clamp(20px, 1.8cqw, 24px);
   border-radius: 50%;
   background: #4a90e2;
   color: white;
-  font-size: 14px;
+  font-size: clamp(12px, 1.1cqw, 15px);
   font-weight: 700;
   flex-shrink: 0;
 }
