@@ -30,8 +30,8 @@ const db = getFirestore(app);
 
 const exchangeOffice = {
   address: "Bulevar Oslobođenja 109, Novi Sad",
-  lat: 45.25508,
-  lng: 19.84594,
+  lat: 45.2476631,
+  lng: 19.8398067,
 };
 
 const defaultMarkerIcon = L.icon({
@@ -84,7 +84,7 @@ function RouteMap({ userPosition, onClose }) {
     if (!userPosition) {
       setRouteCoords([]);
       setRouteError(
-        "Lokacija nije dostupna, pa se prikazuje lokacija kancelarije bez rute.",
+        "Lokacija nije dostupna, omogućite lokaciju za prikaz rute do menjačnice.",
       );
       return;
     }
