@@ -30,35 +30,13 @@ const exchangeOffice = {
 
 function App() {
   const [data, setData] = useState([]);
+  const [showMap, setShowMap] = useState(false);
+  const [mapUrl] = useState(
+    "https://www.openstreetmap.org/export/embed.html?bbox=19.83%2C45.24%2C19.86%2C45.27&layer=mapnik&marker=45.25508%2C19.84594",
+  );
 
-  const openDirections = (event) => {
-    event.preventDefault();
-
-    const fallbackUrl = `https://www.openstreetmap.org/search?query=${encodeURIComponent(
-      exchangeOffice.address,
-    )}`;
-    const destination = `${exchangeOffice.lat},${exchangeOffice.lng}`;
-    const directionsBase = "https://www.openstreetmap.org/directions";
-
-    if (!navigator.geolocation) {
-      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        const start = `${coords.latitude},${coords.longitude}`;
-        const routeUrl = `${directionsBase}?engine=fossgis_osrm_car&route=${start};${destination}`;
-        window.open(routeUrl, "_blank", "noopener,noreferrer");
-      },
-      () => {
-        window.open(fallbackUrl, "_blank", "noopener,noreferrer");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-      },
-    );
+  const showDirectionsMap = () => {
+    setShowMap(true);
   };
 
   useEffect(() => {
@@ -91,17 +69,13 @@ function App() {
             <h1>Menjačnica Sedmica MMS</h1>
             <div className="address-row">
               <p>{exchangeOffice.address}</p>
-              <a
-                href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(
-                  exchangeOffice.address,
-                )}`}
+              <button
+                type="button"
                 className="address-link"
-                target="_blank"
-                rel="noreferrer"
-                onClick={openDirections}
+                onClick={showDirectionsMap}
               >
                 Prikaži na mapi
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -115,6 +89,37 @@ function App() {
           </a>
         </div>
       </header>
+
+      {showMap && (
+        <div className="map-modal-backdrop" onClick={() => setShowMap(false)}>
+          <div
+            className="map-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mapa do Menjačnice Sedmica MMS"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="map-modal-header">
+              <button
+                type="button"
+                className="close-map-button"
+                onClick={() => setShowMap(false)}
+                aria-label="Zatvori mapu"
+              >
+                ×
+              </button>
+            </div>
+            <iframe
+              title="Mapa do Menjačnice Sedmica MMS"
+              src={mapUrl}
+              className="map-iframe"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Body */}
       <div className="box-container">
         {data.map((item, index) =>
