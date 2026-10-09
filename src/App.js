@@ -31,6 +31,7 @@ const exchangeOffice = {
 function App() {
   const [data, setData] = useState([]);
   const [showMap, setShowMap] = useState(false);
+  const [updatedDate, setUpdatedDate] = useState("");
   const [mapUrl] = useState(
     "https://www.openstreetmap.org/export/embed.html?bbox=19.83%2C45.24%2C19.86%2C45.27&layer=mapnik&marker=45.25508%2C19.84594",
   );
@@ -45,6 +46,11 @@ function App() {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
+        const rawDate = docSnap.data().date || "";
+        const formattedDate = rawDate ? rawDate.split(" ")[0] : "";
+
+        setUpdatedDate(formattedDate);
+
         const jsonData = JSON.parse(docSnap.data().Data);
         setData(jsonData);
       } else {
@@ -117,6 +123,15 @@ function App() {
               referrerPolicy="no-referrer-when-downgrade"
             />
           </div>
+        </div>
+      )}
+
+      {updatedDate && (
+        <div className="update-panel" aria-live="polite">
+          <span className="info-icon" aria-hidden="true">
+            ℹ
+          </span>
+          <span>Kursna lista ažurirana na dan {updatedDate}</span>
         </div>
       )}
 
