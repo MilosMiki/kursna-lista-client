@@ -58,6 +58,25 @@ body {
   margin: 0;
 }
 
+.address-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.address-link {
+  color: #8ecae6;
+  font-size: 14px;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.address-link:hover,
+.address-link:focus {
+  color: #d9f0ff;
+}
+
 .header-right {
   display: flex;
   align-items: center;

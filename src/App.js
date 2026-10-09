@@ -22,8 +22,44 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const exchangeOffice = {
+  address: "Bulevar Oslobođenja 109, Novi Sad",
+  lat: 45.25508,
+  lng: 19.84594,
+};
+
 function App() {
   const [data, setData] = useState([]);
+
+  const openDirections = (event) => {
+    event.preventDefault();
+
+    const fallbackUrl = `https://www.openstreetmap.org/search?query=${encodeURIComponent(
+      exchangeOffice.address,
+    )}`;
+    const destination = `${exchangeOffice.lat},${exchangeOffice.lng}`;
+    const directionsBase = "https://www.openstreetmap.org/directions";
+
+    if (!navigator.geolocation) {
+      window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const start = `${coords.latitude},${coords.longitude}`;
+        const routeUrl = `${directionsBase}?engine=fossgis_osrm_car&route=${start};${destination}`;
+        window.open(routeUrl, "_blank", "noopener,noreferrer");
+      },
+      () => {
+        window.open(fallbackUrl, "_blank", "noopener,noreferrer");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+      },
+    );
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,7 +89,20 @@ function App() {
           />
           <div className="header-left">
             <h1>Menjačnica Sedmica MMS</h1>
-            <p>Bulevar Oslobođenja 109, Novi Sad</p>
+            <div className="address-row">
+              <p>{exchangeOffice.address}</p>
+              <a
+                href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(
+                  exchangeOffice.address,
+                )}`}
+                className="address-link"
+                target="_blank"
+                rel="noreferrer"
+                onClick={openDirections}
+              >
+                Prikaži na mapi
+              </a>
+            </div>
           </div>
         </div>
         <div className="header-right">
