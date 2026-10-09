@@ -7,14 +7,13 @@ body::before {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-image: url('../public/logo.jpeg');
+  background-image: url("../public/logo.jpeg");
   background-repeat: no-repeat;
   background-position: center;
   background-size: 50%;
   opacity: 0.05; /* Adjust transparency */
   z-index: -1;
 }
-
 
 body {
   font-family: Arial, sans-serif;
@@ -49,7 +48,6 @@ body {
   align-items: flex-start; /* Align left */
 }
 
-
 .header-left h1 {
   font-size: 32px; /* Larger font size for "Menjačnica Sedmica MMS" */
   margin: 0;
@@ -60,9 +58,21 @@ body {
   margin: 0;
 }
 
-.header-right p {
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.phone-link {
   font-size: 32px; /* Larger font size for "Tel: 021/521-421" */
   margin: 0;
+  color: white;
+  text-decoration: none;
+}
+
+.phone-link:hover,
+.phone-link:focus {
+  text-decoration: underline;
 }
 
 .logo-title {
@@ -162,7 +172,7 @@ body {
   }
 }
 
-@media(max-width:700px){
+@media (max-width: 700px) {
   /* Stack header content on mobile */
   .header {
     flex-direction: column; /* Stack header content vertically */

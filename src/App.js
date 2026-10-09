@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
 // import currencyToCountryCode from "./currencyFlags";
 // import Flag from './Flag';
-import { currencyToCountry } from './currencyToCountry';
-import ReactCountryFlag from 'react-country-flag';
+import { currencyToCountry } from "./currencyToCountry";
+import ReactCountryFlag from "react-country-flag";
 import "./App.css";
 
 // Firebase configuration
@@ -16,7 +15,7 @@ const firebaseConfig = {
   storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
   messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
   appId: process.env.REACT_APP_ID,
-  measurementId: process.env.REACT_APP_MEASURMENT_ID
+  measurementId: process.env.REACT_APP_MEASURMENT_ID,
 };
 
 // Initialize Firebase
@@ -47,19 +46,29 @@ function App() {
       {/* Header */}
       <header className="header">
         <div className="logo-title">
-          <img src="/logo.jpeg" alt="Menjačnica Sedmica MMS Logo" className="logo" />
+          <img
+            src="/logo.jpeg"
+            alt="Menjačnica Sedmica MMS Logo"
+            className="logo"
+          />
           <div className="header-left">
             <h1>Menjačnica Sedmica MMS</h1>
             <p>Bulevar Oslobođenja 109, Novi Sad</p>
           </div>
         </div>
         <div className="header-right">
-          <p>Tel: 021/521-421</p>
+          <a
+            href="tel:+38121521421"
+            className="phone-link"
+            aria-label="Call Menjačnica Sedmica MMS"
+          >
+            Tel: 021/521-421
+          </a>
         </div>
       </header>
       {/* Body */}
       <div className="box-container">
-        {data.map((item, index) => (
+        {data.map((item, index) =>
           item.Otkup === "" || item.Prodaja === "" ? null : (
             <div key={index} className="box">
               <h2>
@@ -68,22 +77,22 @@ function App() {
                   svg
                   className="box-flag"
                   style={{
-                    width: 'auto',
-                    height: '100%',
-                    position: 'absolute',
+                    width: "auto",
+                    height: "100%",
+                    position: "absolute",
                     left: 0,
-                    top: 0
+                    top: 0,
                   }}
                 />
                 <div className="item-name">{item.Naziv}</div>
               </h2>
-                    <p className="label">Otkup:</p>
-                    <p className="value">{item.Otkup}</p>
-                    <p className="label">Prodaja:</p>
-                    <p className="value">{item.Prodaja}</p>
+              <p className="label">Otkup:</p>
+              <p className="value">{item.Otkup}</p>
+              <p className="label">Prodaja:</p>
+              <p className="value">{item.Prodaja}</p>
             </div>
-          )
-        ))}
+          ),
+        )}
       </div>
     </div>
   );
