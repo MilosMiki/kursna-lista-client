@@ -10,6 +10,7 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
+import { MapPinned } from "lucide-react";
 import { currencyToCountry } from "./currencyToCountry";
 import ReactCountryFlag from "react-country-flag";
 import "leaflet/dist/leaflet.css";
@@ -59,6 +60,12 @@ const userPinIcon = L.icon({
   shadowSize: [41, 41],
   shadowAnchor: [12, 41],
 });
+
+function MapPinLocationIcon() {
+  return (
+    <MapPinned size={18} className="address-link-icon-svg" aria-hidden="true" />
+  );
+}
 
 function FitRouteToMap({ routeCoords }) {
   const map = useMap();
@@ -253,13 +260,17 @@ function App() {
           <div className="header-left">
             <h1>Menjačnica Sedmica MMS</h1>
             <div className="address-row">
-              <p>{exchangeOffice.address}</p>
+              <p className="address-text">{exchangeOffice.address}</p>
               <button
                 type="button"
                 className="address-link"
                 onClick={showDirectionsMap}
+                aria-label="Prikaži lokaciju na mapi"
               >
-                Prikaži na mapi
+                <span className="address-link-icon" aria-hidden="true">
+                  <MapPinLocationIcon />
+                </span>
+                <span className="address-link-label">Prikaži na mapi</span>
               </button>
             </div>
           </div>
