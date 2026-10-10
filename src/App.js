@@ -31,11 +31,9 @@ const db = getFirestore(app);
 
 const exchangeOffice = {
   address: "Bulevar Oslobođenja 109, Novi Sad",
-  lat: 45.2476631,
-  lng: 19.8398067,
+  lat: 45.2476631 - 0.3 / 111000,
+  lng: 19.8398067 - 2 / (111000 * Math.cos(45.2476631 * (Math.PI / 180))),
 };
-
-const FALLBACK_USER_POSITION = [45.2582, 19.7603];
 
 function decodePolyline(encoded) {
   if (!encoded || typeof encoded !== "string") {
@@ -249,7 +247,7 @@ async function fetchRouteForMode(userPosition, mode) {
   };
 }
 
-function RouteMap({ userPosition, onClose }) {
+function RouteMap({ userPosition, locationMessage, onClose }) {
   const [routeCoords, setRouteCoords] = useState([]);
   const [routeSummaries, setRouteSummaries] = useState({});
   const [routeByMode, setRouteByMode] = useState({});
@@ -497,6 +495,10 @@ function RouteMap({ userPosition, onClose }) {
           </MapContainer>
         </div>
 
+        {locationMessage && (
+          <div className="route-map-status">{locationMessage}</div>
+        )}
+
         {userPosition && Object.keys(routeSummaries).length > 0 && (
           <div className="travel-summary-bar">
             {travelModes.map((modeInfo) => {
@@ -541,9 +543,12 @@ function App() {
   const [showMap, setShowMap] = useState(false);
   const [updatedDate, setUpdatedDate] = useState("");
   const [userPosition, setUserPosition] = useState(null);
+  const [locationMessage, setLocationMessage] = useState("");
 
   const showDirectionsMap = () => {
     setShowMap(true);
+    setUserPosition(null);
+    setLocationMessage("");
 
     if (navigator && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -554,13 +559,14 @@ function App() {
           ];
           console.log("Using browser geolocation", nextPosition);
           setUserPosition(nextPosition);
+          setLocationMessage("");
         },
         () => {
-          console.log(
-            "Geolocation unavailable; using fallback position",
-            FALLBACK_USER_POSITION,
+          console.log("Geolocation unavailable; showing office location only");
+          setUserPosition(null);
+          setLocationMessage(
+            "Vaša lokacija nije dostupna. Prikazujemo lokaciju menjačnice.",
           );
-          setUserPosition(FALLBACK_USER_POSITION);
         },
         {
           enableHighAccuracy: true,
@@ -571,11 +577,11 @@ function App() {
       return;
     }
 
-    console.log(
-      "Geolocation API unavailable; using fallback position",
-      FALLBACK_USER_POSITION,
+    console.log("Geolocation API unavailable; showing office location only");
+    setUserPosition(null);
+    setLocationMessage(
+      "Vaša lokacija nije dostupna. Omogućite lokaciju za prikaz rute do menjačnice.",
     );
-    setUserPosition(FALLBACK_USER_POSITION);
   };
 
   useEffect(() => {
@@ -640,6 +646,7 @@ function App() {
       {showMap && (
         <RouteMap
           userPosition={userPosition}
+          locationMessage={locationMessage}
           onClose={() => setShowMap(false)}
         />
       )}
