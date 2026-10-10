@@ -83,48 +83,114 @@ function FitRouteToMap({ routeCoords }) {
   return null;
 }
 
+const travelModes = [
+  { key: "pedestrian", label: "Walk", icon: "🚶" },
+  { key: "bicycle", label: "Bike", icon: "🚲" },
+  { key: "auto", label: "Car", icon: "🚗" },
+];
+
 function RouteMap({ userPosition, onClose }) {
   const [routeCoords, setRouteCoords] = useState([]);
-  const [routeError, setRouteError] = useState("");
+  const [routeSummaries, setRouteSummaries] = useState({});
+  const [activeMode, setActiveMode] = useState("pedestrian");
 
   useEffect(() => {
     if (!userPosition) {
       setRouteCoords([]);
-      setRouteError(
-        "Lokacija nije dostupna, omogućite lokaciju za prikaz rute do menjačnice.",
-      );
+      setRouteSummaries({});
+      setActiveMode("pedestrian");
       return;
     }
 
-    const buildRoute = async () => {
+    let isMounted = true;
+
+    const buildRouteForMode = async (mode) => {
+      const response = await fetch("https://valhalla1.openstreetmap.de/route", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          locations: [
+            { lat: userPosition[0], lon: userPosition[1] },
+            { lat: exchangeOffice.lat, lon: exchangeOffice.lng },
+          ],
+          costing: mode,
+          units: "km",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Route request failed");
+      }
+
+      const data = await response.json();
+      const coords = data?.trip?.coordinates ?? [];
+      const summary = data?.trip?.summary ?? null;
+
+      if (!coords || coords.length === 0 || !summary) {
+        throw new Error("No valid route data");
+      }
+
+      return {
+        mode,
+        distance: summary.length ?? 0,
+        time: summary.time ?? 0,
+        coords: coords.map(([lon, lat]) => [lat, lon]),
+      };
+    };
+
+    const buildRoutes = async () => {
       try {
-        const response = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${userPosition[1]},${userPosition[0]};${exchangeOffice.lng},${exchangeOffice.lat}?overview=full&geometries=geojson`,
+        const results = await Promise.all(
+          travelModes.map(async (modeInfo) => {
+            try {
+              const data = await buildRouteForMode(modeInfo.key);
+              return { ...modeInfo, ...data };
+            } catch (error) {
+              return null;
+            }
+          }),
         );
 
-        if (!response.ok) {
-          throw new Error("Route request failed");
+        if (!isMounted) {
+          return;
         }
 
-        const data = await response.json();
-        const geometry = data?.routes?.[0]?.geometry?.coordinates ?? [];
+        const validResults = results.filter(Boolean);
 
-        if (geometry.length === 0) {
-          throw new Error("No route found");
+        if (validResults.length === 0) {
+          setRouteCoords([]);
+          setRouteSummaries({});
+          setActiveMode("pedestrian");
+          return;
         }
 
-        const points = geometry.map(([lng, lat]) => [lat, lng]);
-        setRouteCoords(points);
-        setRouteError("");
+        const nextSummaries = validResults.reduce((acc, result) => {
+          acc[result.key] = {
+            distance: result.distance,
+            time: result.time,
+          };
+          return acc;
+        }, {});
+
+        setRouteSummaries(nextSummaries);
+        setActiveMode(validResults[0].key);
+        setRouteCoords(validResults[0].coords);
       } catch (error) {
-        setRouteCoords([]);
-        setRouteError(
-          "Ruta nije mogla da se prikaže, ali kancelarija je i dalje prikazana na mapi.",
-        );
+        if (isMounted) {
+          setRouteCoords([]);
+          setRouteSummaries({});
+          setActiveMode("pedestrian");
+        }
       }
     };
 
-    buildRoute();
+    buildRoutes();
+
+    return () => {
+      isMounted = false;
+    };
   }, [userPosition]);
 
   const center = userPosition
@@ -193,7 +259,40 @@ function RouteMap({ userPosition, onClose }) {
           </MapContainer>
         </div>
 
-        {routeError && <div className="route-map-status">{routeError}</div>}
+        {userPosition && Object.keys(routeSummaries).length > 0 && (
+          <div className="travel-summary-bar">
+            {travelModes.map((modeInfo) => {
+              const summary = routeSummaries[modeInfo.key];
+
+              if (!summary) {
+                return null;
+              }
+
+              const isActive = activeMode === modeInfo.key;
+              const minutes = Math.max(1, Math.round(summary.time / 60));
+              const distanceKm =
+                summary.distance < 1
+                  ? `${Math.round(summary.distance * 1000)} m`
+                  : `${summary.distance.toFixed(1)} km`;
+
+              return (
+                <button
+                  key={modeInfo.key}
+                  type="button"
+                  className={`travel-mode-card ${isActive ? "is-active" : ""}`}
+                  onClick={() => setActiveMode(modeInfo.key)}
+                  aria-label={`${modeInfo.label} route details`}
+                >
+                  <span className="travel-mode-icon" aria-hidden="true">
+                    {modeInfo.icon}
+                  </span>
+                  <span className="travel-mode-time">{minutes} min</span>
+                  <span className="travel-mode-distance">{distanceKm}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
