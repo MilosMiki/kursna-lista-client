@@ -35,6 +35,50 @@ const exchangeOffice = {
   lng: 19.8398067,
 };
 
+const FALLBACK_USER_POSITION = [45.2582, 19.7603];
+
+function decodePolyline(encoded) {
+  if (!encoded || typeof encoded !== "string") {
+    return [];
+  }
+
+  const coordinates = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+
+  while (index < encoded.length) {
+    let byte = 0;
+    let shift = 0;
+    let result = 0;
+
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    const deltaLat = result & 1 ? ~(result >> 1) : result >> 1;
+    lat += deltaLat;
+
+    shift = 0;
+    result = 0;
+
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+
+    const deltaLng = result & 1 ? ~(result >> 1) : result >> 1;
+    lng += deltaLng;
+
+    coordinates.push([lat / 1e6, lng / 1e6]);
+  }
+
+  return coordinates;
+}
+
 const defaultMarkerIcon = L.icon({
   iconUrl: require("leaflet/dist/images/marker-icon.png"),
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -71,13 +115,26 @@ function FitRouteToMap({ routeCoords }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!routeCoords || routeCoords.length === 0) {
+    if (!Array.isArray(routeCoords) || routeCoords.length === 0) {
       map.setView([exchangeOffice.lat, exchangeOffice.lng], 15);
       return;
     }
 
-    const bounds = L.latLngBounds(routeCoords);
-    map.fitBounds(bounds.pad(0.2));
+    const validCoords = routeCoords.filter(
+      ([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng),
+    );
+
+    if (validCoords.length === 0) {
+      map.setView([exchangeOffice.lat, exchangeOffice.lng], 15);
+      return;
+    }
+
+    try {
+      const bounds = L.latLngBounds(validCoords);
+      map.fitBounds(bounds.pad(0.2));
+    } catch (error) {
+      map.setView([exchangeOffice.lat, exchangeOffice.lng], 15);
+    }
   }, [map, routeCoords]);
 
   return null;
@@ -89,98 +146,226 @@ const travelModes = [
   { key: "auto", label: "Car", icon: "🚗" },
 ];
 
+const osrmProfiles = {
+  pedestrian: "foot",
+  bicycle: "cycling",
+  auto: "driving",
+};
+
+async function fetchOSRMRoute(userPosition, mode = "auto") {
+  const profile = osrmProfiles[mode] || "driving";
+  const url = `https://router.project-osrm.org/route/v1/${profile}/${userPosition[1]},${userPosition[0]};${exchangeOffice.lng},${exchangeOffice.lat}?overview=full&geometries=geojson`;
+  console.log("OSRM request", { mode, profile, url });
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`OSRM route request failed for ${mode}`);
+  }
+
+  const data = await response.json();
+  const geometry = data?.routes?.[0]?.geometry?.coordinates ?? [];
+
+  if (!geometry || geometry.length === 0) {
+    throw new Error(`OSRM returned no route geometry for ${mode}`);
+  }
+
+  const coords = geometry.map(([lng, lat]) => [lat, lng]);
+  console.log("OSRM response", {
+    mode,
+    profile,
+    distance: data?.routes?.[0]?.distance,
+    duration: data?.routes?.[0]?.duration,
+    coordsCount: coords.length,
+    firstPoint: coords[0],
+    lastPoint: coords[coords.length - 1],
+  });
+
+  return coords;
+}
+
+async function fetchRouteForMode(userPosition, mode) {
+  const payload = {
+    locations: [
+      { lat: userPosition[0], lon: userPosition[1] },
+      { lat: exchangeOffice.lat, lon: exchangeOffice.lng },
+    ],
+    costing: mode,
+    units: "km",
+  };
+
+  console.log("Valhalla request", { mode, payload });
+
+  const response = await fetch("https://valhalla1.openstreetmap.de/route", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Valhalla request failed for ${mode}`);
+  }
+
+  const data = await response.json();
+  const summary = data?.trip?.summary ?? null;
+  const directCoords = data?.trip?.coordinates ?? [];
+  const legShapes = (data?.trip?.legs ?? [])
+    .map((leg) => leg?.shape)
+    .filter(Boolean);
+
+  let coords = [];
+
+  if (Array.isArray(directCoords) && directCoords.length > 0) {
+    coords = directCoords.map(([lon, lat]) => [lat, lon]);
+  } else if (legShapes.length > 0) {
+    coords = legShapes.flatMap((shape) => decodePolyline(shape));
+  }
+
+  const validCoords = coords.filter(
+    ([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng),
+  );
+
+  console.log("Valhalla response", {
+    mode,
+    summary,
+    directCoordsCount: directCoords.length,
+    legShapesCount: legShapes.length,
+    validCoordsCount: validCoords.length,
+    firstPoint: validCoords[0],
+    lastPoint: validCoords[validCoords.length - 1],
+  });
+
+  if (validCoords.length < 2 || !summary) {
+    throw new Error(`Valhalla returned invalid route data for ${mode}`);
+  }
+
+  return {
+    mode,
+    distance: summary.length ?? 0,
+    time: summary.time ?? 0,
+    coords: validCoords,
+  };
+}
+
 function RouteMap({ userPosition, onClose }) {
   const [routeCoords, setRouteCoords] = useState([]);
   const [routeSummaries, setRouteSummaries] = useState({});
+  const [routeByMode, setRouteByMode] = useState({});
   const [activeMode, setActiveMode] = useState("pedestrian");
 
   useEffect(() => {
     if (!userPosition) {
       setRouteCoords([]);
       setRouteSummaries({});
+      setRouteByMode({});
       setActiveMode("pedestrian");
       return;
     }
 
     let isMounted = true;
 
-    const buildRouteForMode = async (mode) => {
-      const response = await fetch("https://valhalla1.openstreetmap.de/route", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          locations: [
-            { lat: userPosition[0], lon: userPosition[1] },
-            { lat: exchangeOffice.lat, lon: exchangeOffice.lng },
-          ],
-          costing: mode,
-          units: "km",
-        }),
-      });
+    const buildRouteFromOSRM = async (mode = "auto") =>
+      fetchOSRMRoute(userPosition, mode);
 
-      if (!response.ok) {
-        throw new Error("Route request failed");
-      }
-
-      const data = await response.json();
-      const coords = data?.trip?.coordinates ?? [];
-      const summary = data?.trip?.summary ?? null;
-
-      if (!coords || coords.length === 0 || !summary) {
-        throw new Error("No valid route data");
-      }
-
-      return {
-        mode,
-        distance: summary.length ?? 0,
-        time: summary.time ?? 0,
-        coords: coords.map(([lon, lat]) => [lat, lon]),
-      };
-    };
+    const buildRouteForMode = async (mode) =>
+      fetchRouteForMode(userPosition, mode);
 
     const buildRoutes = async () => {
       try {
-        const results = await Promise.all(
+        let nextRouteByMode = {};
+
+        const valhallaResults = await Promise.all(
           travelModes.map(async (modeInfo) => {
             try {
               const data = await buildRouteForMode(modeInfo.key);
               return { ...modeInfo, ...data };
             } catch (error) {
+              console.error("Valhalla route error:", error);
               return null;
             }
           }),
         );
 
+        const validValhallaResults = valhallaResults.filter(Boolean);
+
+        validValhallaResults.forEach((result) => {
+          if (result.coords && result.coords.length >= 2) {
+            nextRouteByMode[result.key] = result.coords;
+          }
+        });
+
         if (!isMounted) {
           return;
         }
 
-        const validResults = results.filter(Boolean);
+        setRouteByMode(nextRouteByMode);
+        setActiveMode("pedestrian");
 
-        if (validResults.length === 0) {
-          setRouteCoords([]);
-          setRouteSummaries({});
-          setActiveMode("pedestrian");
-          return;
+        if (nextRouteByMode.pedestrian) {
+          setRouteCoords(nextRouteByMode.pedestrian);
+        } else {
+          const firstRoute = Object.values(nextRouteByMode)[0];
+          setRouteCoords(firstRoute || []);
         }
 
-        const nextSummaries = validResults.reduce((acc, result) => {
-          acc[result.key] = {
+        const nextSummaries = {};
+
+        validValhallaResults.forEach((result) => {
+          nextSummaries[result.key] = {
             distance: result.distance,
             time: result.time,
           };
-          return acc;
-        }, {});
+        });
 
         setRouteSummaries(nextSummaries);
-        setActiveMode(validResults[0].key);
-        setRouteCoords(validResults[0].coords);
+
+        console.log("Route cache after Valhalla load", {
+          nextRouteByMode,
+          nextSummaries,
+          activeMode: "pedestrian",
+        });
+
+        if (Object.keys(nextRouteByMode).length === 0) {
+          const osrmFallback = await Promise.all(
+            travelModes.map(async (modeInfo) => {
+              try {
+                const coords = await buildRouteFromOSRM(modeInfo.key);
+                return { mode: modeInfo.key, coords };
+              } catch (error) {
+                console.error(
+                  `OSRM fallback route error for ${modeInfo.key}:`,
+                  error,
+                );
+                return null;
+              }
+            }),
+          );
+
+          const validFallbackRoutes = osrmFallback.filter(Boolean);
+          const fallbackByMode = validFallbackRoutes.reduce((acc, item) => {
+            if (item.coords.length >= 2) {
+              acc[item.mode] = item.coords;
+            }
+            return acc;
+          }, {});
+
+          if (Object.keys(fallbackByMode).length > 0) {
+            setRouteByMode(fallbackByMode);
+            setRouteCoords(
+              fallbackByMode.pedestrian ||
+                Object.values(fallbackByMode)[0] ||
+                [],
+            );
+          }
+        }
       } catch (error) {
+        console.error("Route fallback error:", error);
         if (isMounted) {
           setRouteCoords([]);
           setRouteSummaries({});
+          setRouteByMode({});
           setActiveMode("pedestrian");
         }
       }
@@ -193,12 +378,62 @@ function RouteMap({ userPosition, onClose }) {
     };
   }, [userPosition]);
 
+  const handleModeChange = async (mode) => {
+    setActiveMode(mode);
+    console.log("Mode button clicked", {
+      mode,
+      currentRouteByMode: routeByMode,
+    });
+
+    if (routeByMode[mode] && routeByMode[mode].length >= 2) {
+      console.log("Using cached route for mode", {
+        mode,
+        routeLength: routeByMode[mode].length,
+      });
+      setRouteCoords(routeByMode[mode]);
+      return;
+    }
+
+    if (!userPosition) {
+      return;
+    }
+
+    try {
+      const result = await fetchRouteForMode(userPosition, mode);
+
+      console.log("Mode switch route result", {
+        mode,
+        coordsCount: result.coords.length,
+        firstPoint: result.coords[0],
+        lastPoint: result.coords[result.coords.length - 1],
+      });
+
+      if (result.coords.length >= 2) {
+        setRouteByMode((prev) => ({ ...prev, [mode]: result.coords }));
+        setRouteCoords(result.coords);
+      }
+    } catch (error) {
+      console.error(`Route switch error for ${mode}:`, error);
+
+      try {
+        const coords = await fetchOSRMRoute(userPosition, mode);
+
+        if (coords.length >= 2) {
+          setRouteByMode((prev) => ({ ...prev, [mode]: coords }));
+          setRouteCoords(coords);
+        }
+      } catch (fallbackError) {
+        console.error(
+          `Route switch fallback failed for ${mode}:`,
+          fallbackError,
+        );
+      }
+    }
+  };
+
   const center = userPosition
     ? [userPosition[0], userPosition[1]]
     : [exchangeOffice.lat, exchangeOffice.lng];
-  const mapKey = userPosition
-    ? `user-location-${userPosition[0].toFixed(5)}-${userPosition[1].toFixed(5)}`
-    : "office-only-location";
 
   return (
     <div className="map-modal-backdrop" onClick={onClose}>
@@ -222,15 +457,18 @@ function RouteMap({ userPosition, onClose }) {
 
         <div className="route-map-shell" data-testid="route-map">
           <MapContainer
-            key={mapKey}
             center={center}
             zoom={15}
             scrollWheelZoom
             className="route-map"
+            whenReady={() => {
+              console.log("Map ready");
+            }}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxZoom={19}
             />
 
             <FitRouteToMap routeCoords={routeCoords} />
@@ -280,7 +518,7 @@ function RouteMap({ userPosition, onClose }) {
                   key={modeInfo.key}
                   type="button"
                   className={`travel-mode-card ${isActive ? "is-active" : ""}`}
-                  onClick={() => setActiveMode(modeInfo.key)}
+                  onClick={() => handleModeChange(modeInfo.key)}
                   aria-label={`${modeInfo.label} route details`}
                 >
                   <span className="travel-mode-icon" aria-hidden="true">
@@ -306,24 +544,38 @@ function App() {
 
   const showDirectionsMap = () => {
     setShowMap(true);
-    setUserPosition(null);
 
-    if (!navigator.geolocation) {
+    if (navigator && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const nextPosition = [
+            position.coords.latitude,
+            position.coords.longitude,
+          ];
+          console.log("Using browser geolocation", nextPosition);
+          setUserPosition(nextPosition);
+        },
+        () => {
+          console.log(
+            "Geolocation unavailable; using fallback position",
+            FALLBACK_USER_POSITION,
+          );
+          setUserPosition(FALLBACK_USER_POSITION);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        },
+      );
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setUserPosition([coords.latitude, coords.longitude]);
-      },
-      () => {
-        setUserPosition(null);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-      },
+    console.log(
+      "Geolocation API unavailable; using fallback position",
+      FALLBACK_USER_POSITION,
     );
+    setUserPosition(FALLBACK_USER_POSITION);
   };
 
   useEffect(() => {
