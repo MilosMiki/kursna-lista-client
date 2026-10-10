@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
-// import currencyToCountryCode from "./currencyFlags";
-// import Flag from './Flag';
-import { currencyToCountry } from './currencyToCountry';
-import ReactCountryFlag from 'react-country-flag';
+import {
+  MapContainer,
+  Marker,
+  Polyline,
+  Popup,
+  TileLayer,
+  useMap,
+} from "react-leaflet";
+import L from "leaflet";
+import { MapPinned } from "lucide-react";
+import { currencyToCountry } from "./currencyToCountry";
+import ReactCountryFlag from "react-country-flag";
+import "leaflet/dist/leaflet.css";
 import "./App.css";
 
-// Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_API_KEY,
   authDomain: process.env.REACT_APP_AUTH_DOMAIN,
@@ -16,15 +23,308 @@ const firebaseConfig = {
   storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
   messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
   appId: process.env.REACT_APP_ID,
-  measurementId: process.env.REACT_APP_MEASURMENT_ID
+  measurementId: process.env.REACT_APP_MEASURMENT_ID,
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const exchangeOffice = {
+  address: "Bulevar Oslobođenja 109, Novi Sad",
+  lat: 45.2476631,
+  lng: 19.8398067,
+};
+
+const defaultMarkerIcon = L.icon({
+  iconUrl: require("leaflet/dist/images/marker-icon.png"),
+  iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
+  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+const userPinIcon = L.icon({
+  iconUrl:
+    "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+        <circle cx="11" cy="11" r="8" fill="#1b8cff" stroke="white" stroke-width="3" />
+      </svg>
+    `),
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+  popupAnchor: [0, -11],
+  shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
+  shadowSize: [41, 41],
+  shadowAnchor: [12, 41],
+});
+
+function MapPinLocationIcon() {
+  return (
+    <MapPinned size={18} className="address-link-icon-svg" aria-hidden="true" />
+  );
+}
+
+function FitRouteToMap({ routeCoords }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!routeCoords || routeCoords.length === 0) {
+      map.setView([exchangeOffice.lat, exchangeOffice.lng], 15);
+      return;
+    }
+
+    const bounds = L.latLngBounds(routeCoords);
+    map.fitBounds(bounds.pad(0.2));
+  }, [map, routeCoords]);
+
+  return null;
+}
+
+const travelModes = [
+  { key: "pedestrian", label: "Walk", icon: "🚶" },
+  { key: "bicycle", label: "Bike", icon: "🚲" },
+  { key: "auto", label: "Car", icon: "🚗" },
+];
+
+function RouteMap({ userPosition, onClose }) {
+  const [routeCoords, setRouteCoords] = useState([]);
+  const [routeSummaries, setRouteSummaries] = useState({});
+  const [activeMode, setActiveMode] = useState("pedestrian");
+
+  useEffect(() => {
+    if (!userPosition) {
+      setRouteCoords([]);
+      setRouteSummaries({});
+      setActiveMode("pedestrian");
+      return;
+    }
+
+    let isMounted = true;
+
+    const buildRouteForMode = async (mode) => {
+      const response = await fetch("https://valhalla1.openstreetmap.de/route", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          locations: [
+            { lat: userPosition[0], lon: userPosition[1] },
+            { lat: exchangeOffice.lat, lon: exchangeOffice.lng },
+          ],
+          costing: mode,
+          units: "km",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Route request failed");
+      }
+
+      const data = await response.json();
+      const coords = data?.trip?.coordinates ?? [];
+      const summary = data?.trip?.summary ?? null;
+
+      if (!coords || coords.length === 0 || !summary) {
+        throw new Error("No valid route data");
+      }
+
+      return {
+        mode,
+        distance: summary.length ?? 0,
+        time: summary.time ?? 0,
+        coords: coords.map(([lon, lat]) => [lat, lon]),
+      };
+    };
+
+    const buildRoutes = async () => {
+      try {
+        const results = await Promise.all(
+          travelModes.map(async (modeInfo) => {
+            try {
+              const data = await buildRouteForMode(modeInfo.key);
+              return { ...modeInfo, ...data };
+            } catch (error) {
+              return null;
+            }
+          }),
+        );
+
+        if (!isMounted) {
+          return;
+        }
+
+        const validResults = results.filter(Boolean);
+
+        if (validResults.length === 0) {
+          setRouteCoords([]);
+          setRouteSummaries({});
+          setActiveMode("pedestrian");
+          return;
+        }
+
+        const nextSummaries = validResults.reduce((acc, result) => {
+          acc[result.key] = {
+            distance: result.distance,
+            time: result.time,
+          };
+          return acc;
+        }, {});
+
+        setRouteSummaries(nextSummaries);
+        setActiveMode(validResults[0].key);
+        setRouteCoords(validResults[0].coords);
+      } catch (error) {
+        if (isMounted) {
+          setRouteCoords([]);
+          setRouteSummaries({});
+          setActiveMode("pedestrian");
+        }
+      }
+    };
+
+    buildRoutes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userPosition]);
+
+  const center = userPosition
+    ? [userPosition[0], userPosition[1]]
+    : [exchangeOffice.lat, exchangeOffice.lng];
+  const mapKey = userPosition
+    ? `user-location-${userPosition[0].toFixed(5)}-${userPosition[1].toFixed(5)}`
+    : "office-only-location";
+
+  return (
+    <div className="map-modal-backdrop" onClick={onClose}>
+      <div
+        className="map-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mapa do Menjačnice Sedmica MMS"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="map-modal-header">
+          <button
+            type="button"
+            className="close-map-button"
+            onClick={onClose}
+            aria-label="Zatvori mapu"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="route-map-shell" data-testid="route-map">
+          <MapContainer
+            key={mapKey}
+            center={center}
+            zoom={15}
+            scrollWheelZoom
+            className="route-map"
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+
+            <FitRouteToMap routeCoords={routeCoords} />
+
+            {userPosition && (
+              <Marker position={userPosition} icon={userPinIcon}>
+                <Popup>Vaša lokacija</Popup>
+              </Marker>
+            )}
+
+            <Marker
+              position={[exchangeOffice.lat, exchangeOffice.lng]}
+              icon={defaultMarkerIcon}
+            >
+              <Popup>Menjačnica Sedmica MMS</Popup>
+            </Marker>
+
+            {routeCoords.length > 1 && (
+              <Polyline
+                positions={routeCoords}
+                color="#0b6db7"
+                weight={5}
+                opacity={0.9}
+              />
+            )}
+          </MapContainer>
+        </div>
+
+        {userPosition && Object.keys(routeSummaries).length > 0 && (
+          <div className="travel-summary-bar">
+            {travelModes.map((modeInfo) => {
+              const summary = routeSummaries[modeInfo.key];
+
+              if (!summary) {
+                return null;
+              }
+
+              const isActive = activeMode === modeInfo.key;
+              const minutes = Math.max(1, Math.round(summary.time / 60));
+              const distanceKm =
+                summary.distance < 1
+                  ? `${Math.round(summary.distance * 1000)} m`
+                  : `${summary.distance.toFixed(1)} km`;
+
+              return (
+                <button
+                  key={modeInfo.key}
+                  type="button"
+                  className={`travel-mode-card ${isActive ? "is-active" : ""}`}
+                  onClick={() => setActiveMode(modeInfo.key)}
+                  aria-label={`${modeInfo.label} route details`}
+                >
+                  <span className="travel-mode-icon" aria-hidden="true">
+                    {modeInfo.icon}
+                  </span>
+                  <span className="travel-mode-time">{minutes} min</span>
+                  <span className="travel-mode-distance">{distanceKm}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [data, setData] = useState([]);
+  const [showMap, setShowMap] = useState(false);
+  const [updatedDate, setUpdatedDate] = useState("");
+  const [userPosition, setUserPosition] = useState(null);
+
+  const showDirectionsMap = () => {
+    setShowMap(true);
+    setUserPosition(null);
+
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setUserPosition([coords.latitude, coords.longitude]);
+      },
+      () => {
+        setUserPosition(null);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+      },
+    );
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,6 +332,11 @@ function App() {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
+        const rawDate = docSnap.data().date || "";
+        const formattedDate = rawDate ? rawDate.split(" ")[0] : "";
+
+        setUpdatedDate(formattedDate);
+
         const jsonData = JSON.parse(docSnap.data().Data);
         setData(jsonData);
       } else {
@@ -44,22 +349,60 @@ function App() {
 
   return (
     <div className="App">
-      {/* Header */}
       <header className="header">
         <div className="logo-title">
-          <img src="/logo.jpeg" alt="Menjačnica Sedmica MMS Logo" className="logo" />
+          <img
+            src="/logo.jpeg"
+            alt="Menjačnica Sedmica MMS Logo"
+            className="logo"
+          />
           <div className="header-left">
             <h1>Menjačnica Sedmica MMS</h1>
-            <p>Bulevar Oslobođenja 109, Novi Sad</p>
+            <div className="address-row">
+              <p className="address-text">{exchangeOffice.address}</p>
+              <button
+                type="button"
+                className="address-link"
+                onClick={showDirectionsMap}
+                aria-label="Prikaži lokaciju na mapi"
+              >
+                <span className="address-link-icon" aria-hidden="true">
+                  <MapPinLocationIcon />
+                </span>
+                <span className="address-link-label">Prikaži na mapi</span>
+              </button>
+            </div>
           </div>
         </div>
         <div className="header-right">
-          <p>Tel: 021/521-421</p>
+          <a
+            href="tel:+38121521421"
+            className="phone-link"
+            aria-label="Call Menjačnica Sedmica MMS"
+          >
+            Tel: 021/521-421
+          </a>
         </div>
       </header>
-      {/* Body */}
+
+      {showMap && (
+        <RouteMap
+          userPosition={userPosition}
+          onClose={() => setShowMap(false)}
+        />
+      )}
+
+      {updatedDate && (
+        <div className="update-panel" aria-live="polite">
+          <span className="info-icon" aria-hidden="true">
+            ℹ
+          </span>
+          <span>Kursna lista ažurirana na dan {updatedDate}</span>
+        </div>
+      )}
+
       <div className="box-container">
-        {data.map((item, index) => (
+        {data.map((item, index) =>
           item.Otkup === "" || item.Prodaja === "" ? null : (
             <div key={index} className="box">
               <h2>
@@ -68,22 +411,22 @@ function App() {
                   svg
                   className="box-flag"
                   style={{
-                    width: 'auto',
-                    height: '100%',
-                    position: 'absolute',
+                    width: "auto",
+                    height: "100%",
+                    position: "absolute",
                     left: 0,
-                    top: 0
+                    top: 0,
                   }}
                 />
                 <div className="item-name">{item.Naziv}</div>
               </h2>
-                    <p className="label">Otkup:</p>
-                    <p className="value">{item.Otkup}</p>
-                    <p className="label">Prodaja:</p>
-                    <p className="value">{item.Prodaja}</p>
+              <p className="label">Otkup:</p>
+              <p className="value">{item.Otkup}</p>
+              <p className="label">Prodaja:</p>
+              <p className="value">{item.Prodaja}</p>
             </div>
-          )
-        ))}
+          ),
+        )}
       </div>
     </div>
   );
