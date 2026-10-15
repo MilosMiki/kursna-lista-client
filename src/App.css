@@ -7,14 +7,13 @@ body::before {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-image: url('../public/logo.jpeg');
+  background-image: url("../public/logo.jpeg");
   background-repeat: no-repeat;
   background-position: center;
   background-size: 50%;
   opacity: 0.05; /* Adjust transparency */
   z-index: -1;
 }
-
 
 body {
   font-family: Arial, sans-serif;
@@ -49,7 +48,6 @@ body {
   align-items: flex-start; /* Align left */
 }
 
-
 .header-left h1 {
   font-size: 32px; /* Larger font size for "Menjačnica Sedmica MMS" */
   margin: 0;
@@ -60,9 +58,255 @@ body {
   margin: 0;
 }
 
-.header-right p {
+.address-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.address-text {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.3;
+  white-space: normal;
+  overflow: visible;
+  max-width: none;
+}
+
+.address-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #ffffff;
+  font-size: 13px !important;
+  text-decoration: none;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font: inherit;
+  min-width: 0;
+}
+
+.address-link:hover,
+.address-link:focus {
+  color: #ffffff;
+}
+
+.address-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  color: #ffffff;
+}
+
+.address-link-icon-svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  color: currentColor;
+}
+
+.address-link-label {
+  display: inline;
+}
+
+.map-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.map-modal {
+  width: min(90vw, 960px);
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  position: relative;
+}
+
+.map-modal-header {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1001;
+}
+
+.close-map-button {
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  color: #333;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.route-map-shell {
+  width: 100%;
+  min-height: 420px;
+  height: min(72vh, 560px);
+}
+
+.route-map {
+  width: 100%;
+  height: 100%;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #e9f2fb;
+  z-index: 0;
+}
+
+.leaflet-control-zoom {
+  margin-top: 48px !important;
+  margin-left: 12px !important;
+}
+
+.route-map-status {
+  padding: 10px 14px 14px;
+  color: #184a8c;
+  background: #f7fbff;
+  font-size: 14px;
+}
+
+.travel-summary-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  z-index: 1002;
+  padding: 0 8px;
+}
+
+.travel-mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 84px;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #222;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  font: inherit;
+}
+
+.travel-mode-card.is-active {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+
+.travel-mode-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.travel-mode-time {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111;
+}
+
+.travel-mode-distance {
+  font-size: 11px;
+  color: #4b4b4b;
+}
+
+.location-dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
+}
+
+.user-location-dot {
+  background: #1b8cff;
+}
+
+.office-location-dot {
+  background: #ff7b00;
+}
+
+.update-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  white-space: nowrap;
+  margin: 0 20px 20px;
+  padding: 12px 18px;
+  border: 1px solid #4a90e2;
+  border-radius: 12px;
+  background: rgba(74, 144, 226, 0.05);
+  color: #184a8c;
+  font-size: clamp(16px, 1.2cqw, 18px);
+  line-height: 1.3;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(20px, 1.8cqw, 24px);
+  height: clamp(20px, 1.8cqw, 24px);
+  border-radius: 50%;
+  background: #4a90e2;
+  color: white;
+  font-size: clamp(12px, 1.1cqw, 15px);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.phone-link {
   font-size: 32px; /* Larger font size for "Tel: 021/521-421" */
   margin: 0;
+  color: white;
+  text-decoration: none;
+}
+
+.phone-link:hover,
+.phone-link:focus {
+  text-decoration: underline;
 }
 
 .logo-title {
@@ -152,6 +396,49 @@ body {
   }
 }*/
 
+@media (max-width: 620px) {
+  .address-row {
+    gap: 5px;
+    max-width: 100%;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .address-text {
+    font-size: 13px;
+    max-width: none;
+    min-width: 0;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  .address-link {
+    gap: 0;
+    padding: 4px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    flex-shrink: 0;
+    color: #ffffff;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  .address-link-icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .address-link-icon-svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .address-link-label {
+    display: none;
+  }
+}
+
 @media (max-width: 830px) {
   .box {
     flex: 1 1 calc(50% - 20px); /* 2 boxes per row */
@@ -162,7 +449,7 @@ body {
   }
 }
 
-@media(max-width:700px){
+@media (max-width: 700px) {
   /* Stack header content on mobile */
   .header {
     flex-direction: column; /* Stack header content vertically */
